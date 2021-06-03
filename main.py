@@ -9,9 +9,39 @@ import sqlite3
 
 DATABASE_LOCATION = "sqlite:///my_played_tracks.sqlite"
 USER_ID = "seo2ihmfhz0y8mxjiqd77ttl2"
-TOKEN = "BQD2a155J1AAltHfKZeOD84AkSl5SSRogOvXTi7wO5UCrWEaReBEAWc_b_N0vAqM23i6bE8vFj35-yA5OHF6vTaPpKyxQ7so9qnsdVQ7GrKNja5Qq1yyHi2tf9DOU747wYzw4-p2FlBfXVYTRQDY4GIUFM0zSNz-UdZ_"
+TOKEN = "BQDO1szTrFmIYk0otrl4qGjBe5fR6Y0aYuo5EGV6Ea2yv5twEJw4pkR7Ve9_QLxsWrYqrAuwLboTvcNqNS5YcFSGXrV-tEKAbZUwg7U6xRnzfEX0vwXt3i5Si-VmG_9bd9SsEaQJOOLU5hDKUHRY2PcfJpKOktWHz2QO"
 
-if __name__ == "main":
+def check_if_valid_data(df: pd.DataFrame) -> bool:
+
+    if df.empty:
+        print("No songs downloaded.")
+        return False
+
+    # If we got duplicate, the data pipeline should get failed
+
+    if pd.Series(df['played_at']).is_unique:
+        pass
+    else:
+        raise Exception("Primary Key Check is violated.")
+
+    # any null in rows & columns
+
+    if df.isnull().values.any():
+        raise Exception("Null Values detected.")
+
+    # yesterday check
+
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    timestamps = df["timestamp"].tolist()
+    for timestamp in timestamps:
+        if datetime.datetime.strptime(timestamp, '%Y-%m-%d') != yesterday:
+            raise Exception("At least one of the returned songs does not have a yesterday's timestamp")
+
+    return True
+
+if __name__ == "__main__":
 
     # Extract part of the ETL process
 
@@ -29,7 +59,6 @@ if __name__ == "main":
     req = requests.get("https://api.spotify.com/v1/me/player/recently-played?after={time}".format(time=yesterday_unix_timestamp), headers = headers)
 
     data = req.json()
-    # print(data)
 
     data = req.json()
 
@@ -54,3 +83,6 @@ if __name__ == "main":
 
     song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"])
     print(song_df)
+
+    if check_if_valid_data(song_df):
+        print("Valid Data, proceed to Load Stage.")
