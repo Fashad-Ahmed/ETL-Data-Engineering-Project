@@ -81,7 +81,6 @@ if __name__ == "__main__":
     }
 
     song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"])
-    # print(song_df)
 
     if check_if_valid_data(song_df):
         print("Valid Data, proceed to Load Stage.")
